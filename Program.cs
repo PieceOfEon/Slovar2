@@ -1,19 +1,23 @@
 ﻿using System;
+using System.Runtime.ConstrainedExecution;
 using System.Text.Json;
 using System.Xml.Linq;
 
 TranslateDictionary td = new TranslateDictionary();
-
+Console.WriteLine("Создание");
+Console.WriteLine("Введите имя словаря");
+Console.ReadKey();
+string namesl = Console.ReadLine();
 char vvod;
 do
 {
     Console.Clear();
-    Console.WriteLine("1 - Создание словаря");
-    Console.WriteLine("2 - Добавление");
-    Console.WriteLine("3 - Вывод словника");
-    Console.WriteLine("4 - Поиск");
-    Console.WriteLine("5 - Save");
-    Console.WriteLine("6 - Load");
+    Console.WriteLine("1 - Добавление");
+    Console.WriteLine("2 - Вывод словника");
+    Console.WriteLine("3 - Добавление/Удаление слов/перевода");
+    Console.WriteLine("4 - Save");
+    Console.WriteLine("5 - Load");
+    Console.WriteLine("6 - Поиск");
     Console.WriteLine("Выход - Esc");
 
     vvod = Console.ReadKey().KeyChar;
@@ -22,55 +26,55 @@ do
         case '1':
             {
                 Console.Clear();
-
+                re3: Console.WriteLine("Введите слово");
+                string slov = Console.ReadLine();
+                if (slov == "" || slov == " " || slov == "   ")
+                {
+                    goto re3;
+                }
+                re4: Console.WriteLine("Введите перевод");
+                string perev = Console.ReadLine();
+                if (perev == "" || perev == " " || perev == "   ")
+                {
+                    goto re4;
+                }
+                td.words.Add(new Word() { Slovo = slov, perevod = perev });
                 Console.ReadKey();
                 break;
             }
         case '2':
             {
                 Console.Clear();
-                Console.WriteLine("Введите слово на английском");
-                string engWord = Console.ReadLine();
-                Console.WriteLine("Введите его перевод на украинском");
-                string UaWord = Console.ReadLine();
-                td.words.Add(new Word() { ENG = engWord, UA = UaWord });
-
+                Console.WriteLine("Название словаря-> " +namesl);
+                td.print();
                 Console.ReadKey();
                 break;
             }
         case '3':
             {
                 Console.Clear();
-                td.print();
+                td.AddTrs();
                 Console.ReadKey();
                 break;
             }
         case '4':
             {
                 Console.Clear();
-                td.AddTrs();
+                td.CreateSettings();
                 Console.ReadKey();
                 break;
             }
         case '5':
             {
                 Console.Clear();
-                td.CreateSettings();
+                td.LoadSettings();
                 Console.ReadKey();
                 break;
             }
         case '6':
             {
                 Console.Clear();
-                td.LoadSettings();
-                Console.ReadKey();
-                break;
-            }
-        case '7':
-            {
-                Console.Clear();
-
-
+                td.search();
                 Console.ReadKey();
                 break;
             }
@@ -78,24 +82,16 @@ do
 } while (vvod != 27);
 class Word
 {
-    public Word()
-    {
-
-    }
-    public Word(string enG, string Ua)
-    {
-        ENG = enG;
-        UA = Ua;
-    }
-    public string UA { get; set; }
-    public string ENG { get; set; }
-
+    public Word(){}
+    public Word(string enG, string Ua) { Slovo = enG;perevod = Ua; }
+    public string perevod { get; set; }
+    public string Slovo { get; set; }
 }
 class TranslateDictionary
 {
     string[] splits;
     public List<Word>? words { get; set; }
-    
+    public int language;
     public TranslateDictionary()
     {
         words = new List<Word>();
@@ -103,13 +99,13 @@ class TranslateDictionary
     public void print()
     {
         var WPua = from word in words
-                   orderby word.ENG
+                   orderby word.Slovo
                    select word;
         
         foreach (var word in WPua)
         {
-            Console.WriteLine("Слово\tПеревод");
-            Console.WriteLine(word.ENG + "\t" + word.UA);
+            Console.WriteLine("Слово \tПеревод");
+            Console.WriteLine(word.Slovo + "\t" + word.perevod);
         }
     }
     public bool perSearch = true;
@@ -121,8 +117,9 @@ class TranslateDictionary
             {
                 foreach (var ve in words)
                 {
-                    Word? folder = new(ve.ENG, ve.UA);
+                    Word? folder = new(ve.perevod, ve.Slovo);
                     await JsonSerializer.SerializeAsync<Word>(f, folder);
+                    Console.WriteLine("Save +");
                 }
             }
         }
@@ -135,9 +132,8 @@ class TranslateDictionary
             using (FileStream f2 = new("Perevodik.json", FileMode.Open))
             {
                 string json = null;
-                var i = new JsonSerializerOptions { WriteIndented = true };
                 foreach (var p in words)
-                    json += JsonSerializer.Serialize<Word>(p/*, i*/) + "\n";
+                    json += JsonSerializer.Serialize<Word>(p) + "\n";
                 Console.WriteLine(json);
                 Console.WriteLine();
             }
@@ -147,36 +143,24 @@ class TranslateDictionary
     public void search()
     {
         
-        Console.WriteLine("Введите искомое слово на ??? языке");
+        Console.WriteLine("Введите искомое слово");
         string slovosearch = Console.ReadLine();
         var search = from word in words
-                     where word.ENG == slovosearch
+                     where word.Slovo.ToLower() == slovosearch.ToLower()
                      select word;
         foreach (var word in search)
         {
-            Console.WriteLine("Cлово->  " + word.ENG + "\t"+"Вариант(ы) перевода" + word.UA);
+            Console.WriteLine("Cлово->  " + word.Slovo + "\t"+"Вариант(ы) перевода ->>" + word.perevod);
         }
-
-        var search2 = from word2 in words
-                      where word2.ENG != slovosearch
-                      select word2;
-        foreach (var word2 in search2)
-        {
-            Console.WriteLine("Совпадений нет.");
-        }
-
     }
     public void AddTrs()
     {
-        //search();
-      
-        
             char vvod;
             do
             {
         re1: Console.Clear();
                 Console.WriteLine("1 - Добавить перевод");
-                Console.WriteLine("2 - Удаление");
+                Console.WriteLine("2 - Удаление слова");
                 Console.WriteLine("3 - Удаление перевода");
                 Console.WriteLine("Выход - Esc");
 
@@ -187,30 +171,30 @@ class TranslateDictionary
                         {
                             Console.Clear();
                             Console.WriteLine("Добавить перевод");
-                            Console.WriteLine("Введите искомое слово на ??? языке");
+                            Console.WriteLine("Введите искомое слово");
                             string slovosearch = Console.ReadLine();
 
                         var search = from word in words
-                                     where word.ENG == slovosearch
+                                     where word.Slovo.ToLower() == slovosearch.ToLower()
                                      select word;
                         foreach (var word in search)
                         {
                             Console.WriteLine("Слово\tПеревод");
-                            Console.WriteLine(word.ENG + "\t" + word.UA);
+                            Console.WriteLine(word.Slovo + "\t" + word.perevod);
                             re2: Console.WriteLine("Введите перевод чтобы добавить");
                             string per = Console.ReadLine();
                             if(per=="" || per==" " || per=="   ")
                             {
                                 goto re2;
                             }
-                            word.UA = word.UA + " " + per;
-                            Console.WriteLine(word.ENG + "\t" + word.UA);
+                            word.perevod = word.perevod + " " + per;
+                            Console.WriteLine(word.Slovo + "\t" + word.perevod);
                             perSearch = false;
                         }
                         if(perSearch==true)
                         {
                             var search2 = from word in words
-                                          where word.ENG != slovosearch
+                                          where word.Slovo != slovosearch
                                           select word;
                             foreach (var word2 in search2)
                             {
@@ -226,80 +210,74 @@ class TranslateDictionary
                     case '2':
                         {
                             Console.Clear();
-                        Console.WriteLine("Добавить перевод");
-                        Console.WriteLine("Введите искомое слово на ??? языке для удаления слова и его переводов");
+                        Console.WriteLine("Введите искомое слово для удаления слова и его переводов");
                         string slovosearch = Console.ReadLine();
                             Console.WriteLine("Слово\tПеревод");
-                            words.Remove(words.Single(s => s.ENG == slovosearch));
+                        try
+                        {
+                            words.Remove(words.Single(s => s.Slovo == slovosearch));
+                        }catch(Exception e) { Console.WriteLine(e.Message); }
+                            
                         Console.ReadKey();
                             break;
                         }
                     case '3':
                     {
                         Console.Clear();
-                        string newPerevod="";
-                        string[] split;
-                        Console.WriteLine("Введите искомое слово на ??? языке");
-                        string slovosearch = Console.ReadLine();
-                        var f = words.Find(p => p.ENG == slovosearch);
-                        Console.WriteLine(f.ENG + "\t"+ f.UA);
-                        Console.WriteLine("Введите перевод который хотите удалить");
-                        string perDel = Console.ReadLine();
-                        Console.WriteLine(f.UA.Contains(perDel));
-                        //splits = f.UA.Split(perDel);
-                        splits=f.UA.Split(new char[] {});
-                        Console.WriteLine(splits.Length);
-                        Console.WriteLine("Drasti "+f.UA+" OH");
-                        if (splits.Length < 2)
+                        try
                         {
-                            Console.ReadKey();
-                            break;
-                        }
-                        if (perDel.Length == 0)
-                        {
-                            Console.ReadKey();
-                            break;
-                        }
-                        
-                        //if (f.UA.Contains(perDel)==true)
-                        //{
+                            string newPerevod = "";
+                            string[] split;
+                            Console.WriteLine("Введите искомое слово");
+                            string slovosearch = Console.ReadLine();
+
+                            var f = words.Find(p => p.Slovo == slovosearch);
+                            Console.WriteLine(f.Slovo + "\t" + f.perevod);
+                            Console.WriteLine("Введите перевод который хотите удалить");
+                            string perDel = Console.ReadLine();
+                            splits = f.perevod.Split(new char[] { });
+                            if (splits.Length < 2)
+                            {
+                                Console.ReadKey();
+                                break;
+                            }
+                            if (perDel.Length == 0)
+                            {
+                                Console.ReadKey();
+                                break;
+                            }
                             foreach (string s in splits)
                             {
                                 Console.WriteLine(s);
-                                if (s==perDel)
+                                if (s == perDel)
                                 {
-                                    //newPerevod += "";
                                     Console.WriteLine(s);
                                 }
-                                else if (s!= perDel)
+                                else if (s != perDel)
                                 {
-                                    newPerevod += s+" ";
+                                    newPerevod += s + " ";
                                 }
-                                //Console.WriteLine(s);
-
                             }
-                            Console.WriteLine(newPerevod);
-                        //}
-                        splits = f.UA.Split(new char[] { });
-                        split = newPerevod.Split(new char[] {});
-                        Console.WriteLine("Размер нового сплита-> " + split.Length);
-                        string n = "";
-                        for (int i = 0; i < split.Length; i++)
-                        {
-                            n += split[i];
+                            splits = f.perevod.Split(new char[] { });
+                            split = newPerevod.Split(new char[] { });
+                            string n = "";
+                            for (int i = 0; i < split.Length; i++)
+                            {
+                                n += split[i];
+                            }
+                            if (split.Length < 2)
+                            {
+                                Console.ReadKey();
+                                break;
+                            }
+                            f.perevod = n;
                         }
-                        if (split.Length < 2)
-                        {
-                            Console.ReadKey();
-                            break;
-                        }
-                        f.UA = n;
-                        Console.WriteLine("Last chanse: " + f.UA);
+                        catch (Exception e) { Console.WriteLine(e.Message); }
+
                         Console.ReadKey();
                         break;
                     }
                 }
             } while (vvod != 27);
-
     }
 }
